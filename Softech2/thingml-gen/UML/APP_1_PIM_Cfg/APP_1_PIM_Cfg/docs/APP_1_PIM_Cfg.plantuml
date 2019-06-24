@@ -1,0 +1,31 @@
+@startuml
+component led_pim
+component led_psm
+
+component bme280_pim
+component bme280_psm
+
+
+component gps_pim
+component app_1_pim
+component gps_psm
+component sds_psm
+component sds_pim
+
+component mqtt_psm
+component mqtt_pim
+
+app_1_pim -(0- bme280_pim 
+bme280_pim -(0- bme280_psm 
+app_1_pim -(0- gps_pim 
+gps_pim -(0- gps_psm 
+mqtt_pim -(0- mqtt_psm 
+app_1_pim -(0- mqtt_pim 
+led_pim -(0- led_psm 
+
+app_1_pim -(0- led_pim 
+sds_pim -(0- sds_psm 
+app_1_pim -(0- sds_pim 
+mqtt_psm- MQTT 
+
+@enduml

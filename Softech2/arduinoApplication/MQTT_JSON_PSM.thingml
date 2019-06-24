@@ -1,0 +1,244 @@
+import "_Datatypes.thingml"
+
+thing fragment Msgs {
+	message MQTT_JSON_setup();
+	message MQTT_JSON_send(latitude:Float,longitude:Float,year:Integer,month:Integer,date:Integer,hour:Integer,minute:Integer,second:Integer,temperature:Integer,pressure:Integer,altitude:Integer,humidity:Integer,pm10:Integer,pm25:Integer);
+	message JAVA_DECISION(thestate:Integer);
+}
+thing MQTT_JSON_PSM includes Msgs  
+@c_header "
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <time.h>"
+@c_global "
+WiFiClient espClient;
+PubSubClient client(espClient);
+int timezone = 2 * 3600;
+int dst = 0;
+
+long lastMsg = 0;
+char msg[50];
+int value = 0;
+
+int x =0;
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print(\"Message arrived [\");
+  Serial.print(topic);
+  Serial.print(\"] \");
+  String Str4 = \"\";
+  String choice = \"{\\\"tempState\\\":{\\\"thestate\\\":\\\"High Temperature\\\"}}\";    
+  
+  
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+    Str4 = Str4 + (char)payload[i];
+  }
+    Serial.println();
+    Serial.println();
+    Serial.println(Str4);
+    Serial.println();
+    Serial.println();
+    Serial.println(choice);
+    
+pinMode(14, OUTPUT);
+  
+  Serial.println();
+  // Switch on the LED if an 1 was received as first character
+  if (Str4.equals(choice)) {
+  Serial.println(\"equals\");
+  digitalWrite(14, HIGH);
+  x=1;
+    // but actually the LED is on; this is because
+    // it is active low on the ESP-01)
+  } else {
+    Serial.println(\"not equals\");
+    digitalWrite(14, LOW);
+    x=0; 
+  }
+
+}
+"
+{
+	property ssid : String = "AndroidAP"
+	property password : String = "pytf4675"
+	property mqtt_server : String	= "test.mosquitto.org"	
+	property mqtt_port : Integer	= 1883
+	property mqtt_user : String	= "steve"
+	property mqtt_password : String	= "1234"
+	property mqtt_clientID : String	= "ESP8266Client"
+	property mqtt_topic : String	= "SensorOutTopicThingML"
+	property mqtt_qos : Byte	= 2
+	property mqtt_retain : Boolean	= false
+	
+	property station_id : String	= "1234"
+	property station_owner : String	= "jerry"
+	    property x_property : Integer = 0
+		
+	provided port MQTT_JSON_PORT 
+	@sync_send "true"
+	{
+		receives MQTT_JSON_setup , MQTT_JSON_send 
+		sends JAVA_DECISION
+	}
+
+
+	
+	statechart behavior init STATE_CONNECT_WLAN {
+		state STATE_CONNECT_WLAN {
+			on entry do
+				' 	  
+				 Serial.begin(9600);
+				
+				  delay(10);
+				  // We start by connecting to a WiFi network
+				  Serial.println();
+				  Serial.print("Connecting to ");
+				  Serial.println('&ssid&');
+				
+				  WiFi.begin('&ssid&', '&password&');
+				
+				  while (WiFi.status() != WL_CONNECTED) {
+				    delay(500);
+				    Serial.print(".");
+				  }
+				
+				  randomSeed(micros());
+				
+				  Serial.println("");
+				  Serial.println("WiFi connected");
+				  Serial.println("IP address: ");
+				  Serial.println(WiFi.localIP());
+
+				  client.setServer('&mqtt_server&', '&mqtt_port&');
+				  //configure the NTP server 
+				  configTime(timezone, dst, "pool.ntp.org","time.nist.gov");
+  				  Serial.println("\nWaiting for Internet time");
+
+  				  while(!time(nullptr)){
+     			  Serial.print("*");
+     			  delay(1000);
+  				 }
+  				Serial.println("\nTime response....OK");
+				  
+				  '
+			end
+			transition -> STATE_CONNECT_MQTT_SUB
+		}
+		
+		state STATE_CONNECT_MQTT_SUB {	
+		on entry do
+		    x_property = 'x;'
+            if(x_property == 1)do
+            	MQTT_JSON_PORT!JAVA_DECISION(1)
+            	'  Serial.println("klaaaapt");'
+            end else do 
+            	MQTT_JSON_PORT!JAVA_DECISION(0)
+            end
+			'
+			client.setCallback(callback);	 
+						 
+			  if (!client.connected()) {
+			    // Loop until we are reconnected
+			    while (!client.connected()) {
+			      Serial.print("Attempting MQTT connection...");
+			      // Create a random client ID
+			      String clientId = "ESP8266Client-";
+			      clientId += String(random(0xffff), HEX);
+			      // Attempt to connect
+			      if (client.connect(clientId.c_str())) {
+			        Serial.println("connected");
+			        // ... and resubscribe
+			        client.subscribe("JavaOutTopicThingML");
+			      } else {
+			        // Wait 5 seconds before retrying
+			        delay(5000);
+			      }
+			    }
+			  }
+			  client.loop();
+			 '
+			end
+			transition -> STATE_CONNECT_MQTT_PUB	
+		}
+		state STATE_CONNECT_MQTT_PUB {
+			transition -> STATE_CONNECT_MQTT_SUB
+			event p : MQTT_JSON_PORT?MQTT_JSON_send
+			action do 
+			'  if (!client.connected()) {
+			  while (!client.connected()) {
+			    Serial.print("Attempting MQTT connection...");
+			    // Attempt to connect
+			    //if (client.connect('&mqtt_clientID&','&mqtt_user&','&mqtt_password&')) {
+			    if (client.connect('&mqtt_clientID&')) {
+			    
+			      Serial.println("connected");
+			    } else {
+			      delay(5000);
+			    }
+			   }
+			  }
+			
+			//get the time and date from NTP server
+			  time_t now = time(nullptr);
+			  struct tm* p_tm = localtime(&now);
+			  Serial.print(p_tm->tm_mday);
+			  Serial.print("/");
+			  Serial.print(p_tm->tm_mon + 1);
+			  Serial.print("/");
+			  Serial.print(p_tm->tm_year + 1900);
+			  
+			  Serial.print(" ");
+			  
+			  Serial.print(p_tm->tm_hour);
+			  Serial.print(":");
+			  Serial.print(p_tm->tm_min);
+			  Serial.print(":");
+			  Serial.println(p_tm->tm_sec);
+			  Serial.print(now);
+
+  // Prepare a JSON payload string
+  /*String payload = "{";
+      payload += "\"id\":"; payload += '&station_id&'; payload += ",";
+      payload += "\"timestamp\":"; payload += now; payload += ",";
+      payload += "\"pm25\":"; payload += '&p.pm25&'; payload += ",";
+      payload += "\"pm10\":"; payload += '&p.pm10&'; payload += ",";
+      payload += "\"hum\":"; payload += '&p.humidity&'; payload += ",";
+      payload += "\"press\":"; payload += '&p.pressure&'; payload += ",";
+      payload += "\"temp\":"; payload += '&p.temperature&'; payload += ",";
+      payload += "\"version\":"; payload += 1;
+  payload += "}";
+  */
+
+  // Prepare a JSON payload string
+  String payloadWeather = "{";
+      payloadWeather += "\"weather\":";
+      payloadWeather += "{";
+      payloadWeather += "\"id\":\""; payloadWeather += '&station_id&'; payloadWeather += "\",";
+      payloadWeather += "\"timestamp\":"; payloadWeather += now; payloadWeather += ",";
+      payloadWeather += "\"pm25\":"; payloadWeather += '&p.pm25&'; payloadWeather += ",";
+      payloadWeather += "\"pm10\":"; payloadWeather += '&p.pm10&'; payloadWeather += ",";
+      payloadWeather += "\"hum\":"; payloadWeather += '&p.humidity&'; payloadWeather += ",";
+      payloadWeather += "\"press\":"; payloadWeather += '&p.pressure&'; payloadWeather += ",";
+      payloadWeather += "\"temp\":"; payloadWeather += '&p.temperature&';
+  	  payloadWeather += "}";
+  	  payloadWeather += "}";
+  	  
+  // Send payload
+  /*
+  char attributes[600];
+  payload.toCharArray( attributes, 600 );
+  client.publish('&mqtt_topic&', attributes,'&mqtt_retain&');
+  Serial.println( attributes );
+  */
+
+  // Send payloadWeather
+  char attributesWeather[600];
+  payloadWeather.toCharArray( attributesWeather, 600 );
+  client.publish('&mqtt_topic&', attributesWeather,'&mqtt_retain&');
+  Serial.println( attributesWeather );
+  '
+			end		
+		}
+	}
+}
+

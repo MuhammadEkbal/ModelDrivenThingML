@@ -1,0 +1,15 @@
+@startuml
+skinparam defaultTextAlignment left
+[*] --> behavior
+state behavior{
+state SETUP{
+
+SETUP --> MEASURE : p:GPS_PIM_PORT?gps_setup_pim\naction do \nprint ("GPS 1 -")\nGPS_PSM_PORT!gps_setup_psm()\nend\n
+}
+state MEASURE{
+	MEASURE : p:GPS_PIM_PORT?gps_mesure_pim / \naction do \nprint ("GPS 4 -")\nGPS_PSM_PORT!gps_mesure_psm()\nend\n
+	MEASURE : p:GPS_PSM_PORT?gps_location_time_psm / \naction GPS_PIM_PORT!gps_location_time_pim(p.latitudep.longitudep.yearp.monthp.datep.hourp.minutep.second)\n
+}
+[*] --> SETUP
+}
+@enduml

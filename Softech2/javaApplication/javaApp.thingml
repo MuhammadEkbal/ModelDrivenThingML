@@ -1,0 +1,65 @@
+import "_Datatypes.thingml"
+
+/*
+enumeration ColorTemperature {
+	cold
+	normal
+	warm
+}
+*/
+
+thing fragment JavaAppMSGs {
+	message tempState(thestate: String) @code "61"
+
+	message weather(id : String, timestamp: Integer , pm25: Integer, pm10: Integer, hum: Integer, press: Integer, temp: Integer) @code "65"
+}
+
+
+thing APP_2_PIM includes JavaAppMSGs {
+	
+	required port JavaApp_PORT {
+		sends tempState
+		receives weather
+	}
+	
+	statechart SC init READY {
+		
+		on entry print "Started!\n"
+		
+		state READY {
+			
+			internal event e:JavaApp_PORT?weather action do
+				print e.id
+				print e.temp
+				if (e.temp > 28) do 
+				print "so warm realy! \n" 
+				JavaApp_PORT!tempState("High Temperature")
+				end else if (e.temp < 15) do 
+				JavaApp_PORT!tempState("COLD Temperature")
+				end else do 
+				JavaApp_PORT!tempState("Normal Temperature")
+				end
+				
+			end
+			
+			
+		}	
+	}
+}
+
+
+protocol MQTT @serializer "JSON"
+  @mqtt_broker_address "test.mosquitto.org" 
+  @trace_level "2"
+  @mqtt_publish_topic "JavaOutTopicThingML"
+  @mqtt_subscribe_topic "SensorOutTopicThingML"
+  @mqtt_broker_port "1883";
+  
+
+configuration APP_2_PIM_Cfg {
+	
+	instance app_2_pim : APP_2_PIM
+	connector app_2_pim.JavaApp_PORT over MQTT
+	
+	
+}

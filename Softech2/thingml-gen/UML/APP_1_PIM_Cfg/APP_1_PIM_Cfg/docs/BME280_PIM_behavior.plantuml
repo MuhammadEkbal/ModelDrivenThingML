@@ -1,0 +1,11 @@
+@startuml
+skinparam defaultTextAlignment left
+state SETUP{
+
+SETUP --> MEASURE 
+}
+state MEASURE{
+}
+[*] --> SETUP
+
+@enduml

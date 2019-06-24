@@ -1,0 +1,11 @@
+@startuml
+skinparam defaultTextAlignment left
+[*] --> behavior
+state behavior{
+state Running{
+	Running : p:SDS_PSM_PORT?sds_setup_psm / \naction do \nprint ("SDS 2 -")\n'sds.begin();'\nend\n
+	Running : p:SDS_PSM_PORT?sds_mesure_psm / \naction do \nprint ("SDS 5 -")\n' PmResult pm = sds.readPm();\r\n\t\t\t\t  if (pm.isOk()) {'\npm10 = 'pm.pm10;'\npm25 = 'pm.pm25;'\n'}'\nSDS_PSM_PORT!sds_pm_psm(pm10pm25)\nend\n
+}
+[*] --> Running
+}
+@enduml

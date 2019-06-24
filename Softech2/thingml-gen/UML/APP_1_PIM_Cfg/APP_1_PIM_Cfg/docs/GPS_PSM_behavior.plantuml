@@ -1,0 +1,11 @@
+@startuml
+skinparam defaultTextAlignment left
+[*] --> behavior
+state behavior{
+state Running{
+	Running : p:GPS_PSM_PORT?gps_setup_psm / \naction print ("GPS 2 -")\n
+	Running : p:GPS_PSM_PORT?gps_mesure_psm / \naction do \nprint ("GPS 5 -")\nGPS_PSM_PORT!gps_location_time_psm(latitudelongitudeyearmonthdatehourminutesecond)\nend\n
+}
+[*] --> Running
+}
+@enduml

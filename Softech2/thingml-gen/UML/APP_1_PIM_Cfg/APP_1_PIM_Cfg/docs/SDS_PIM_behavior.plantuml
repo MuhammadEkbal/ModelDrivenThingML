@@ -1,0 +1,15 @@
+@startuml
+skinparam defaultTextAlignment left
+[*] --> behavior
+state behavior{
+state SETUP{
+
+SETUP --> MEASURE : p:SDS_PIM_PORT?sds_setup_pim\naction do \nprint ("SDS 1 -")\nSDS_PSM_PORT!sds_setup_psm()\nend\n
+}
+state MEASURE{
+	MEASURE : p:SDS_PIM_PORT?sds_mesure_pim / \naction do \nprint ("SDS 4 -")\nSDS_PSM_PORT!sds_mesure_psm()\nend\n
+	MEASURE : p:SDS_PSM_PORT?sds_pm_psm / \naction SDS_PIM_PORT!sds_pm_pim(p.pm10p.pm25)\n
+}
+[*] --> SETUP
+}
+@enduml

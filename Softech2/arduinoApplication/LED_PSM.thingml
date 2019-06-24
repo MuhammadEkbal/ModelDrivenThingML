@@ -1,0 +1,45 @@
+import "_Datatypes.thingml"
+
+
+thing fragment LED_PSM_Msgs {
+	message setup_psm(pin: UInt8);
+	message turn_on_psm(value : DigitalState);
+	message turn_off_psm(value : DigitalState);
+}
+
+thing LED_PSM includes LED_PSM_Msgs
+{
+	property PIN: UInt8 = 11
+
+	provided port LED_PSM_PORT 
+	@sync_send "true"
+	{
+		receives setup_psm,turn_on_psm ,turn_off_psm
+	}
+
+	statechart behavior init Running {
+	
+		state Running {
+			
+			internal event p : LED_PSM_PORT?setup_psm
+			action do
+				print("LED 2 -")
+			 
+				'pinMode('&PIN&', OUTPUT);'
+			end
+			
+			internal event p : LED_PSM_PORT?turn_on_psm
+			action do 
+				'digitalWrite('&PIN&', '&p.value&');'
+			end
+			
+			internal event p : LED_PSM_PORT?turn_off_psm
+			action do 
+				'digitalWrite('&PIN&', '&p.value&');'
+			end
+		}
+	
+	}
+
+}
+

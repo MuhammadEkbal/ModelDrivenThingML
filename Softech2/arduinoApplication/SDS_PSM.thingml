@@ -1,0 +1,53 @@
+import "_Datatypes.thingml"
+
+
+thing fragment SDS_PSM_Msgs {
+	message sds_setup_psm();
+	message sds_mesure_psm();
+	message sds_pm_psm(pm10:Integer,pm25:Integer) ;
+	message sds_done_setup_psm()
+}
+
+thing SDS_PSM includes SDS_PSM_Msgs
+@c_header "#include <SdsDustSensor.h>"
+
+@c_global "int rxPin = D7;
+			int txPin = D8;
+			SdsDustSensor sds(rxPin, txPin);"
+{
+	property pm10 : Integer 
+	property pm25 : Integer	
+	
+	provided port SDS_PSM_PORT 
+	@sync_send "true"
+	{
+		receives sds_setup_psm , sds_mesure_psm 
+		sends sds_pm_psm 
+	}
+
+	statechart behavior init Running {
+		state Running {
+
+			
+			internal event p : SDS_PSM_PORT?sds_setup_psm
+			action do  
+			  print("SDS 2 -")
+  				'sds.begin();' 				
+			end
+			
+			internal event p : SDS_PSM_PORT?sds_mesure_psm
+			action do
+			  print("SDS 5 -")
+				' PmResult pm = sds.readPm();
+				  if (pm.isOk()) {'
+				    pm10 = 'pm.pm10;'
+				    pm25 = 'pm.pm25;'
+				    '}' 
+				  SDS_PSM_PORT!sds_pm_psm(pm10,pm25)
+			end
+		}
+	
+	}
+
+}
+

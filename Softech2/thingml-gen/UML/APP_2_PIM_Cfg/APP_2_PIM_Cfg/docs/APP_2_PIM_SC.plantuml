@@ -1,0 +1,9 @@
+@startuml
+skinparam defaultTextAlignment left
+
+state READY{
+	READY : event : mqttPort?weather  \naction do\n\nif ( event.temp > 28 )         send ("High Temperature")\nelse if( event.temp < 15 ) send ("COLD Temperature")\nelse send("Normal Temperature")\n\nend\n
+}
+[*] --> READY
+
+@enduml

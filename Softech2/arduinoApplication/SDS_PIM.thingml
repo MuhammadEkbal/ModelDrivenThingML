@@ -1,0 +1,53 @@
+import "_Datatypes.thingml"
+import "SDS_PSM.thingml"
+
+
+thing fragment SDS_PIM_Msgs {
+	message sds_setup_pim();
+	message sds_mesure_pim();
+	message sds_pm_pim(pm10:Integer,pm25:Integer) ;
+}
+
+thing SDS_PIM includes SDS_PSM_Msgs ,SDS_PIM_Msgs
+{	
+	required port SDS_PSM_PORT 
+	@sync_send "true"
+	{
+		sends sds_setup_psm , sds_mesure_psm 
+		receives sds_pm_psm
+	}
+	
+	provided port SDS_PIM_PORT 
+	@sync_send "true"
+	{
+		receives sds_setup_pim , sds_mesure_pim 
+		sends sds_pm_pim
+	}
+
+	statechart behavior init SETUP {		
+		state SETUP {
+			transition -> MEASURE
+			event p : SDS_PIM_PORT?sds_setup_pim
+			action do
+			  print("SDS 1 -")
+				SDS_PSM_PORT!sds_setup_psm()
+			end
+		}
+		
+		state MEASURE{
+			internal event p : SDS_PIM_PORT?sds_mesure_pim
+			action do
+			  print("SDS 4 -")
+				SDS_PSM_PORT!sds_mesure_psm()
+			end			
+
+			internal event p : SDS_PSM_PORT?sds_pm_psm
+			action do 
+				SDS_PIM_PORT!sds_pm_pim(p.pm10,p.pm25)
+			end
+			
+	
+		}
+	}
+}
+

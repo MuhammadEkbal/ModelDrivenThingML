@@ -1,0 +1,60 @@
+import "_Datatypes.thingml"
+import "BME280_PSM.thingml"
+
+
+thing fragment BME280_PIM_Msgs {
+	message bme280_setup_pim();
+	message bme280_mesure_pim();
+	message bme280_THP_pim(temperature:Integer,pressure:Integer,altitude:Integer,humidity:Integer) ;
+}
+
+thing BME280_PIM includes BME280_PSM_Msgs ,BME280_PIM_Msgs
+{
+	property temperature : Integer 
+	property pressure : Integer
+	property altitude : Integer
+	property humidity : Integer
+	
+	required port BME280_PSM_PORT 
+	@sync_send "true"
+	{
+		sends bme280_setup_psm , bme280_mesure_psm 
+		receives bme280_THP_psm
+	}
+	provided port BME280_PIM_PORT 
+	@sync_send "true"
+	{
+		receives bme280_setup_pim , bme280_mesure_pim 
+		sends bme280_THP_pim
+	}
+
+	statechart behavior init SETUP {
+
+		state SETUP {
+			transition -> MEASURE
+			event p : BME280_PIM_PORT?bme280_setup_pim
+			action do
+				print("BME 1 -")
+				BME280_PSM_PORT!bme280_setup_psm()
+			end
+		}
+		
+		state MEASURE{
+			internal event p : BME280_PIM_PORT?bme280_mesure_pim
+			action do
+			  print("BME 4 -")
+				BME280_PSM_PORT!bme280_mesure_psm()
+			end
+			
+			internal event p : BME280_PSM_PORT?bme280_THP_psm
+			action do
+				BME280_PIM_PORT!bme280_THP_pim(p.temperature ,p.pressure ,p.altitude ,p.humidity) 
+
+			end
+			
+		}
+	
+	}
+
+}
+

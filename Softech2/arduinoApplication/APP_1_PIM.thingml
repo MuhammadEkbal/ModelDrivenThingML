@@ -1,0 +1,215 @@
+import "_Datatypes.thingml"
+import "LED_PSM.thingml"
+import "LED_PIM.thingml"
+
+import "GPS_PSM.thingml"
+import "GPS_PIM.thingml"
+
+import "SDS_PSM.thingml"
+import "SDS_PIM.thingml"
+
+import "MQTT_PSM.thingml"
+import "MQTT_PIM.thingml"
+
+import "BME280_PSM.thingml"
+import "BME280_PIM.thingml"
+
+
+
+
+
+thing APP_1_PIM includes GPS_PIM_Msgs , LED_PIM_Msgs  ,MQTT_PIM_Msgs , BME280_PIM_Msgs ,SDS_PIM_Msgs{
+	property pm10 : Integer 
+	property pm25 : Integer
+
+	property temperature : Integer 
+	property pressure : Integer
+	property altitude : Integer
+	property humidity : Integer
+			
+	property latitude : Float
+	property longitude : Float
+	property year : Integer
+	property month : Integer
+	property date : Integer
+	property hour : Integer
+	property minute : Integer
+	property second : Integer
+	
+	required port LED_PIM_PORT 
+	@sync_send "true"
+	{
+		sends setup_pim,turn_on_pim ,turn_off_pim
+	}
+	required port GPS_PIM_PORT 
+	@sync_send "true"
+	{
+		sends gps_setup_pim , gps_mesure_pim
+		receives gps_location_time_pim
+	}
+	required port SDS_PIM_PORT 
+	@sync_send "true"
+	{
+		sends sds_setup_pim , sds_mesure_pim 
+		receives sds_pm_pim 
+	}
+	
+	required port BME280_PIM_PORT 
+	@sync_send "true"
+	{
+		sends bme280_setup_pim , bme280_mesure_pim
+		receives bme280_THP_pim
+	}
+	required port MQTT_PIM_PORT 
+	@sync_send "true"
+	{
+		sends  mqtt_setup_pim , mqtt_send_pim 
+		receives JAVA_DECISION_pim 
+	}
+	
+	statechart behavior init STATION_SETUP {
+	
+		state STATION_SETUP {
+			on entry do
+			  print("*********************************************")
+			  print("LED 0 -")
+				LED_PIM_PORT!setup_pim()
+			  print("BME 0 -")
+				BME280_PIM_PORT!bme280_setup_pim()
+			  print("SDS 0 -")
+				SDS_PIM_PORT!sds_setup_pim()
+			  print("GPS 0 -")
+				GPS_PIM_PORT!gps_setup_pim()
+			  print("MQTT 0 -")
+				MQTT_PIM_PORT!mqtt_setup_pim()																	
+
+			end
+			transition -> STATE_BME280_MEASURE 
+		}	
+		state STATE_BME280_MEASURE {
+			on entry do
+			  print("BME 3 -")
+				BME280_PIM_PORT!bme280_mesure_pim()
+			end
+			transition -> STATE_SDS_MEASURE
+			event p : BME280_PIM_PORT?bme280_THP_pim
+			action do
+				print("BME 6 -")
+				temperature =  p.temperature
+				pressure =  p.pressure
+				altitude =  p.altitude
+				humidity =  p.humidity
+			end
+			}
+			state STATE_SDS_MEASURE {
+			on entry do
+			  print("SDS 3 -")
+				SDS_PIM_PORT!sds_mesure_pim()
+			end
+			
+			transition -> STATE_GPS_MEASURE
+			internal event p : SDS_PIM_PORT?sds_pm_pim
+			action do
+			  print("SDS 6 -")
+				pm10 = p.pm10
+				pm25 = p.pm25
+			end
+			}
+		
+		state STATE_GPS_MEASURE {
+			on entry do
+			  print("GPS 3 -")
+				GPS_PIM_PORT!gps_mesure_pim()	
+			end
+			transition -> STATE_SEND
+			event p : GPS_PIM_PORT?gps_location_time_pim
+			action do
+			  print("GPS 6 -")
+				latitude =  p.latitude
+				longitude =  p.longitude
+				year =  p.year
+				month =  p.month
+				date =  p.date
+				hour =  p.hour
+				minute =  p.minute
+				second =  p.second
+			end
+			}
+	
+		state STATE_SEND {
+			on entry do
+			  print("MQTT 3 -")
+				MQTT_PIM_PORT!mqtt_send_pim(latitude,longitude,year,month,date,hour,minute,second,temperature,pressure,altitude,humidity,pm10,pm25)	
+				//LED_PORT!LEDOFF('LOW')
+			end
+			transition -> STATE_BME280_MEASURE
+			event p : MQTT_PIM_PORT?JAVA_DECISION_pim
+			action do
+			  print("MQTT 10 -")
+				if(p.thestate == 1)do
+					LED_PIM_PORT!turn_on_pim('HIGH')
+            	end
+            	if(p.thestate == 0)do
+					LED_PIM_PORT!turn_off_pim('LOW')
+            	end
+            end
+		}	
+	}
+}
+
+//TODO: Compile and run for the C platform
+configuration APP_1_PIM_Cfg 
+@arduino_stdout "Serial"
+{
+	
+	instance led_pim : LED_PIM
+		set led_pim.PIN = 'D0'
+			
+		
+	instance app_1_pim : APP_1_PIM	
+		
+    	connector app_1_pim.LED_PIM_PORT => led_pim.LED_PIM_PORT
+    	
+   instance led_psm : LED_PSM
+		set led_psm.PIN = 'D0'
+    	connector led_pim.LED_PSM_PORT => led_psm.LED_PSM_PORT
+	
+	instance gps_pim : GPS_PIM
+	connector app_1_pim.GPS_PIM_PORT => gps_pim.GPS_PIM_PORT
+	instance gps_psm : GPS_PSM
+	connector gps_pim.GPS_PSM_PORT => gps_psm.GPS_PSM_PORT
+	
+		
+	instance bme280_pim : BME280_PIM
+	connector app_1_pim.BME280_PIM_PORT => bme280_pim.BME280_PIM_PORT	
+	instance bme280_psm : BME280_PSM
+	connector bme280_pim.BME280_PSM_PORT => bme280_psm.BME280_PSM_PORT	
+
+	instance sds_pim : SDS_PIM
+	connector app_1_pim.SDS_PIM_PORT => sds_pim.SDS_PIM_PORT
+	instance sds_psm : SDS_PSM
+	connector sds_pim.SDS_PSM_PORT => sds_psm.SDS_PSM_PORT
+		
+	instance mqtt_psm : MQTT_PSM
+	connector mqtt_pim.MQTT_PSM_PORT => mqtt_psm.MQTT_PSM_PORT
+	
+	instance mqtt_pim : MQTT_PIM
+		set mqtt_pim.station_id = "1234"
+		set mqtt_pim.station_owner = "Jerry"
+		set mqtt_pim.ssid = "EasyBox-903061"
+		//set mqtt_pim.ssid = "AndroidAP"
+		
+		set mqtt_pim.password = "gcpBEr6La68zvxCM"
+		//set mqtt_pim.password = "pytf4675"
+		
+		set mqtt_pim.mqtt_server = "192.168.2.112"
+		set mqtt_pim.mqtt_port = 1883
+		set mqtt_pim.mqtt_topic = "SensorOutTopicThingML"
+		set mqtt_pim.mqtt_user = "steve"
+		set mqtt_pim.mqtt_password = "1234"
+		set mqtt_pim.mqtt_clientID = "ESP8266Client"
+		set mqtt_pim.mqtt_qos = 2
+		set mqtt_pim.mqtt_retain = false	
+	connector app_1_pim.MQTT_PIM_PORT => mqtt_pim.MQTT_PIM_PORT
+
+}

@@ -1,0 +1,77 @@
+import "_Datatypes.thingml"
+
+
+thing fragment BME280_PSM_Msgs {
+	message bme280_setup_psm();
+	message bme280_mesure_psm();
+	message bme280_THP_psm(temperature:Integer,pressure:Integer,altitude:Integer,humidity:Integer) ;
+}
+
+thing BME280_PSM includes BME280_PSM_Msgs
+@c_header "
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>"
+
+@c_global "
+// assign the ESP8266 pins to arduino pins
+#define D1 5
+#define D2 4
+#define D4 2
+#define D3 0
+
+// assign the SPI bus to pins
+#define BME_SCK D1
+#define BME_MISO D4
+#define BME_MOSI D2
+#define BME_CS D3
+Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO, BME_SCK); // software SPI
+#define SEALEVELPRESSURE_HPA (1013.25)
+"
+{
+	provided port BME280_PSM_PORT 
+	@sync_send "true"
+	{
+		receives bme280_setup_psm , bme280_mesure_psm 
+		sends bme280_THP_psm
+	}
+
+	statechart behavior init Running {
+		state Running {
+		
+			property temperature : Integer 
+			property pressure : Integer
+			property altitude : Integer
+			property humidity : Integer
+			
+			internal event p : BME280_PSM_PORT?bme280_setup_psm
+			action do 
+			  print("BME 2 -")
+
+			    'bool status;
+			    
+			    // default settings
+			    status = bme.begin();
+			    if (!status) {
+			        Serial.println("Could not find a valid BME280 sensor, check wiring!");
+			        while (1);
+			    }'
+			end
+			
+			internal event p : BME280_PSM_PORT?bme280_mesure_psm
+			action do
+			  print("BME 5 -")
+			    temperature = 'bme.readTemperature();'
+			    pressure = '(bme.readPressure() / 100.0F);'
+			    altitude = 'bme.readAltitude(SEALEVELPRESSURE_HPA);'
+			    humidity = 'bme.readHumidity();'
+
+			    BME280_PSM_PORT!bme280_THP_psm(temperature,pressure,altitude,humidity)
+			end
+		}
+	
+	}
+
+}
+

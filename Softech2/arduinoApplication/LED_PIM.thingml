@@ -1,0 +1,55 @@
+import "_Datatypes.thingml"
+import "LED_PSM.thingml"
+
+
+thing fragment LED_PIM_Msgs {
+	message setup_pim();
+	message turn_on_pim(value : DigitalState);
+	message turn_off_pim(value : DigitalState);
+}
+
+thing LED_PIM includes LED_PIM_Msgs ,LED_PSM_Msgs
+{
+	property PIN: UInt8 = 11
+	
+	required port LED_PSM_PORT 
+	@sync_send "true"
+	{
+		sends setup_psm,turn_on_psm ,turn_off_psm
+	}
+	provided port LED_PIM_PORT 
+	@sync_send "true"
+	{
+		receives setup_pim,turn_on_pim ,turn_off_pim
+	}
+
+	statechart behavior init SETUP {		
+		state SETUP {				
+				internal event p:LED_PIM_PORT?setup_pim
+				action do 
+				print("LED 1 -")
+				LED_PSM_PORT!setup_psm(PIN)
+				end
+				
+				transition -> OFF
+		}
+		
+		state OFF {
+				transition -> ON
+				event p :LED_PIM_PORT?turn_on_pim
+				action do 
+				LED_PSM_PORT!turn_on_psm(p.value)
+				end
+		}
+		state ON {
+				transition -> OFF
+				event p : LED_PIM_PORT?turn_off_pim
+				action do 
+				LED_PSM_PORT!turn_off_psm(p.value)
+				end
+		}
+	
+	}
+
+}
+

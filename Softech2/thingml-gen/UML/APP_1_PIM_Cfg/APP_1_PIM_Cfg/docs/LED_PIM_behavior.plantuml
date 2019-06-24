@@ -1,0 +1,20 @@
+@startuml
+skinparam defaultTextAlignment left
+[*] --> behavior
+state behavior{
+state SETUP{
+
+SETUP --> OFF
+	SETUP : p:LED_PIM_PORT?setup_pim / \naction do \nprint ("LED 1 -")\nLED_PSM_PORT!setup_psm(PIN)\nend\n
+}
+state OFF{
+
+OFF --> ON : p:LED_PIM_PORT?turn_on_pim\naction LED_PSM_PORT!turn_on_psm(p.value)\n
+}
+state ON{
+
+ON --> OFF : p:LED_PIM_PORT?turn_off_pim\naction LED_PSM_PORT!turn_off_psm(p.value)\n
+}
+[*] --> SETUP
+}
+@enduml

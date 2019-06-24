@@ -1,0 +1,5 @@
+@startuml
+component app_2_pim
+boundary MQTT
+app_2_pim -- MQTT 
+@enduml

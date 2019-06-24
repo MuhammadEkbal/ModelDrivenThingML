@@ -1,0 +1,25 @@
+@startuml
+skinparam defaultTextAlignment left
+state SETUP{
+
+SETUP --> BME280_MEASURE
+}
+state BME280_MEASURE{
+
+BME280_MEASURE --> SDS_MEASURE 
+}
+state SDS_MEASURE{
+
+SDS_MEASURE --> GPS_MEASURE
+}
+state GPS_MEASURE{
+
+GPS_MEASURE --> SEND 
+}
+state SEND{
+
+SEND --> BME280_MEASURE 
+}
+[*] --> SETUP
+
+@enduml

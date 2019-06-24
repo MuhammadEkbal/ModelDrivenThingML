@@ -1,0 +1,12 @@
+@startuml
+skinparam defaultTextAlignment left
+[*] --> behavior
+state behavior{
+state Running{
+	Running : p:LED_PSM_PORT?setup_psm / \naction do \nprint ("LED 2 -")\n'pinMode(' & PIN & ', OUTPUT);'\nend\n
+	Running : p:LED_PSM_PORT?turn_on_psm / \naction 'digitalWrite(' & PIN & ', ' & p.value & ');'\n
+	Running : p:LED_PSM_PORT?turn_off_psm / \naction 'digitalWrite(' & PIN & ', ' & p.value & ');'\n
+}
+[*] --> Running
+}
+@enduml

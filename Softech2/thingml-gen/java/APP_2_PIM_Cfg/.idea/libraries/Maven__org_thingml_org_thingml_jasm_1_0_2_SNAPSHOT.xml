@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.thingml:org.thingml.jasm:1.0.2-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/thingml/org.thingml.jasm/1.0.2-SNAPSHOT/org.thingml.jasm-1.0.2-20161208.160357-12.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/thingml/org.thingml.jasm/1.0.2-SNAPSHOT/org.thingml.jasm-1.0.2-20161208.160357-12-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/thingml/org.thingml.jasm/1.0.2-SNAPSHOT/org.thingml.jasm-1.0.2-20161208.160357-12-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

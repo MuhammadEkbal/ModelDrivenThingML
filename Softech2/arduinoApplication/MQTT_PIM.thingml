@@ -1,0 +1,62 @@
+import "_Datatypes.thingml"
+import "MQTT_PSM.thingml"
+thing fragment MQTT_PIM_Msgs {
+	message mqtt_setup_pim();
+	message mqtt_send_pim(latitude:Float,longitude:Float,year:Integer,month:Integer,date:Integer,hour:Integer,minute:Integer,second:Integer,temperature:Integer,pressure:Integer,altitude:Integer,humidity:Integer,pm10:Integer,pm25:Integer);
+	message JAVA_DECISION_pim(thestate:Integer);
+}
+thing MQTT_PIM includes MQTT_PIM_Msgs , MQTT_PSM_Msgs  
+{
+	property ssid : String = "AndroidAP"
+	property password : String = "pytf4675"
+	property mqtt_server : String	= "test.mosquitto.org"	
+	property mqtt_port : Integer	= 1883
+	property mqtt_user : String	= "steve"
+	property mqtt_password : String	= "1234"
+	property mqtt_clientID : String	= "ESP8266Client"
+	property mqtt_topic : String	= "SensorOutTopicThingML"
+	property mqtt_qos : Byte	= 2
+	property mqtt_retain : Boolean	= false
+	
+	property station_id : String	= "1234"
+	property station_owner : String	= "jerry"
+		
+	provided port MQTT_PIM_PORT 
+	@sync_send "true"
+	{
+		receives mqtt_setup_pim , mqtt_send_pim 
+		sends JAVA_DECISION_pim 
+	}
+	required port MQTT_PSM_PORT 
+	@sync_send "true"
+	{
+		sends mqtt_setup_psm , mqtt_send_psm 
+		receives JAVA_DECISION_psm 
+	}
+
+	statechart behavior init SETUP {
+	
+				state SETUP {
+						transition -> PUB_SUB
+						event p : MQTT_PIM_PORT?mqtt_setup_pim
+						action do
+			  				print("MQTT 1 -")
+			 				MQTT_PSM_PORT!mqtt_setup_psm(station_id,station_owner,ssid,password  ,mqtt_server  ,mqtt_port  ,mqtt_user  ,mqtt_password  ,mqtt_clientID  ,mqtt_topic  ,mqtt_qos  ,mqtt_retain )
+						end
+						}
+				 state PUB_SUB{
+						internal event p : MQTT_PIM_PORT?mqtt_send_pim
+						action do
+			  				print("MQTT 4 -")
+							MQTT_PSM_PORT!mqtt_send_psm(p.latitude,p.longitude,p.year,p.month,p.date,p.hour,p.minute,p.second,p.temperature,p.pressure,p.altitude,p.humidity,p.pm10,p.pm25)				
+						end	
+						internal event p : MQTT_PSM_PORT?JAVA_DECISION_psm
+						action do
+			  				print("MQTT 7 -")
+							MQTT_PIM_PORT!JAVA_DECISION_pim(p.thestate)
+						end	
+						}
+
+		}
+}
+

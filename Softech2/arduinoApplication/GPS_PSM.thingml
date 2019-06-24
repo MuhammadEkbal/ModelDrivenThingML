@@ -1,0 +1,50 @@
+import "_Datatypes.thingml"
+
+
+thing fragment GPS_PSM_Msgs {
+	message gps_setup_psm();	
+	message gps_mesure_psm();
+	message gps_location_time_psm(latitude:Float,longitude:Float,year:Integer,month:Integer,date:Integer,hour:Integer,minute:Integer,second:Integer) ;	
+}
+
+thing GPS_PSM includes GPS_PSM_Msgs
+{
+
+	provided port GPS_PSM_PORT 
+	@sync_send "true"
+	{
+		receives gps_mesure_psm , gps_setup_psm
+		sends gps_location_time_psm
+	}
+
+	statechart behavior init Running {
+	
+		state Running {
+			property latitude : Float = 53.1435
+			property longitude : Float = 8.2146
+			property year : Integer = 2019
+			property month : Integer = 10
+			property date : Integer = 31
+			property hour : Integer = 24
+			property minute : Integer = 60
+			property second : Integer = 60
+			
+			internal event p : GPS_PSM_PORT?gps_setup_psm
+			action do
+				print("GPS 2 -")
+			 
+			end
+			
+			internal event p : GPS_PSM_PORT?gps_mesure_psm
+			action do
+			  print("GPS 5 -")
+				 GPS_PSM_PORT!gps_location_time_psm(latitude,longitude,year,month,date,hour,minute,second)
+			end
+			
+
+		}
+	
+	}
+
+}
+

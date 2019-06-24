@@ -1,0 +1,15 @@
+@startuml
+skinparam defaultTextAlignment left
+[*] --> behavior
+state behavior{
+state SETUP{
+
+SETUP --> PUB_SUB : p:MQTT_PIM_PORT?mqtt_setup_pim\naction do \nprint ("MQTT 1 -")\nMQTT_PSM_PORT!mqtt_setup_psm(station_idstation_ownerssidpasswordmqtt_servermqtt_portmqtt_usermqtt_passwordmqtt_clientIDmqtt_topicmqtt_qosmqtt_retain)\nend\n
+}
+state PUB_SUB{
+	PUB_SUB : p:MQTT_PIM_PORT?mqtt_send_pim / \naction do \nprint ("MQTT 4 -")\nMQTT_PSM_PORT!mqtt_send_psm(p.latitudep.longitudep.yearp.monthp.datep.hourp.minutep.secondp.temperaturep.pressurep.altitudep.humidityp.pm10p.pm25)\nend\n
+	PUB_SUB : p:MQTT_PSM_PORT?JAVA_DECISION_psm / \naction do \nprint ("MQTT 7 -")\nMQTT_PIM_PORT!JAVA_DECISION_pim(p.thestate)\nend\n
+}
+[*] --> SETUP
+}
+@enduml
